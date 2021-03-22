@@ -13,4 +13,5 @@
 Plans:
 1. Create the DynamicPersonality part and apply it to everything with a brain. [Done]
 2. Hook Dynamic Personality into the Conversation system so it can modify conversations [Done]
-3. 
+3. Create Personality Trait XML format
+4. Implement Loading Personality Traits from XML
