@@ -8,10 +8,20 @@ using XRL.World.AI;
 
 namespace XRL.World.Parts
 {
-    class Fyrefly_DynamicPersonality : IPart
+    public class DynamicPersonality : IPart
     {
         public static void logE(string text) => Debug.LogError(text);
         public static void log(string text) => Debug.Log(text);
+
+        public class BoundarySet
+        {
+            public int trade = 0;
+            public int givequest = 0;
+            public int receivegift = 50;
+            public int converse = 100;
+            public int waterbond = 200;
+            public int companion = 300;
+        }
 
         public class Fyrefly_DynamicRelationship : ObjectOpinion
         {
@@ -73,9 +83,14 @@ namespace XRL.World.Parts
             }
         }
 
-        public Dictionary<GameObject, Fyrefly_DynamicRelationship> relationships;
+        //Important Fields
 
+        public Dictionary<GameObject, Fyrefly_DynamicRelationship> relationships;
         public string name;
+        public BoundarySet boundaries = new BoundarySet();
+
+
+        //Easy References
 
         private GameObject player = XRLCore.Core.Game.Player.Body;
         private Brain brain => ParentObject.pBrain;
@@ -115,7 +130,15 @@ namespace XRL.World.Parts
 
         public void HandleShowConversationChoices(Event E)
         {
+            List<ConversationChoice> choices = E.GetParameter<List<ConversationChoice>>("Choices");
+            ConversationNode firstNode = E.GetParameter<ConversationNode>("FirstNode");
+            ConversationNode currentNode = E.GetParameter<ConversationNode>("CurrentNode");
 
+            int opinion = brain.GetFeeling(player);
+
+            if (opinion < boundaries.trade) {
+                //Cant Trade
+            }
         }
 
         public override bool HandleEvent(ObjectCreatedEvent E)

@@ -14,7 +14,7 @@ namespace Fyrefly.HarmonyPatches{
                 Debug.LogError("No parent object to require part on!");
                 return;
             } 
-            __instance.ParentObject.RequirePart<Fyrefly_DynamicPersonality>();
+            __instance.ParentObject.RequirePart<DynamicPersonality>();
             Debug.Log($"Brain Part added to {__instance.ParentObject.DebugName}");
         }
 
