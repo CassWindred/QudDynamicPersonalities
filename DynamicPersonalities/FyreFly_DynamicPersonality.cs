@@ -17,19 +17,19 @@ namespace XRL.World.Parts
         {
             get
             {
-                int opinion = brain.GetFeeling(player);
+                double opinion = GetPersonalOpinion(player).value;
                 return (opinion >= boundaries.trade);
             }
         }
 
         public class BoundarySet
         {
-            public int trade = -5;
-            public int givequest = 0;
+            public int trade = -10;
+            public int givequest = -5;
             public int receivegift = 10;
-            public int converse = 10;
-            public int waterbond = 200;
-            public int companion = 300;
+            public int converse = 15;
+            public int waterbond = 75;
+            public int companion = 85;
         }
 
         public BoundarySet boundaries = new BoundarySet();
@@ -50,11 +50,14 @@ namespace XRL.World.Parts
             }
 
             public DynamicPersonality personality;
+
+            public GameObject opinionHaver;
             public GameObject opinionTarget;
 
             public Fyrefly_PersonalOpinion(DynamicPersonality p, GameObject target)
             {
                 personality = p;
+                opinionHaver = personality.ParentObject;
                 opinionTarget = target;
 
                 var rand = new System.Random();
@@ -69,10 +72,15 @@ namespace XRL.World.Parts
 
         public Fyrefly_PersonalOpinion GetPersonalOpinion(GameObject target)
         {
+            log($"GetPersonalOpinion on {ParentObject.DebugName} Begin");
+            log($"Getting {ParentObject.DebugName}'s opinion of {target.DebugName}");
             if (!personalOpinions.ContainsKey(target))
             {
-                personalOpinions[target] = new Fyrefly_PersonalOpinion(this, target);
+                log("No opinion found, creeating a new one");
+                Fyrefly_PersonalOpinion newOpinion = new Fyrefly_PersonalOpinion(this, target);
+                personalOpinions[target] = newOpinion;
             }
+            log($"Returning {personalOpinions[target]}");
             return personalOpinions[target];
         }
 
@@ -155,7 +163,7 @@ namespace XRL.World.Parts
 
         //Easy References
 
-        private GameObject player = XRLCore.Core.Game.Player.Body;
+        private GameObject player => XRLCore.Core.Game.Player.Body;
         private Brain brain => ParentObject.pBrain;
 
         public void HandleBeginConversation(Event E)
