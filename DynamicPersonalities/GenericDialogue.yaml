@@ -1,0 +1,21 @@
+---
+#The basic dialogue used for everyone unless replaced
+- BaseDialogue:
+  #Dialogues with higher priority will be used over dialogues with lower priority
+  priority: 0
+  dialogueStrings:
+    - TradeBoundaryNo: 
+        - "Sorry, I don't know you well enough to trade quite yet..."
+    - WaterbondBoundaryNo: 
+        - "Sorry, I don't feel comfortable water-bonding with you..."
+    - ReceiveGiftBoundaryNo: 
+        - "A gift? I don't feel I know you well enough to accept this..."
+    - ReceiveGiftDislike: 
+        - "Uh, thanks..."
+    - ReceiveGiftLike: 
+        - "For me? Thank you!"
+        - "A gift? I thank"
+    - ReceiveGiftLove:
+        - "For me? I love =gift.category='s, how did you know?"
+        - "Such a wonderful gift, I give you thanks."
+...

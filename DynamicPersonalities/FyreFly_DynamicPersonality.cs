@@ -10,30 +10,81 @@ namespace XRL.World.Parts
 {
     public class DynamicPersonality : IPart
     {
-        public static void logE(string text) => Debug.LogError(text);
-        public static void log(string text) => Debug.Log(text);
+        private static void logE(string text) => Debug.LogError(text);
+        private static void log(string text) => Debug.Log(text);
+
+        public bool WillingToTrade
+        {
+            get
+            {
+                int opinion = brain.GetFeeling(player);
+                return (opinion >= boundaries.trade);
+            }
+        }
 
         public class BoundarySet
         {
-            public int trade = 0;
+            public int trade = -5;
             public int givequest = 0;
-            public int receivegift = 50;
-            public int converse = 100;
+            public int receivegift = 10;
+            public int converse = 10;
             public int waterbond = 200;
             public int companion = 300;
         }
 
-        public class Fyrefly_DynamicRelationship : ObjectOpinion
+        public BoundarySet boundaries = new BoundarySet();
+
+
+        public class Fyrefly_PersonalOpinion
         {
-            public Fyrefly_DynamicRelationship(int Feeling) : base(Feeling)
+
+
+            private double _value;
+            /// <summary>
+            /// The strength of this opinion, ranges from hatred (-100) to adoration (+100).
+            /// </summary>
+            public double value
             {
+                get { return Math.Max(-100, Math.Min(_value, 100)); }
+                set { _value = Math.Max(-100, Math.Min(value, 100)); }
             }
 
-            public Fyrefly_DynamicRelationship(ObjectOpinion src) : base(src)
+            public DynamicPersonality personality;
+            public GameObject opinionTarget;
+
+            public Fyrefly_PersonalOpinion(DynamicPersonality p, GameObject target)
             {
+                personality = p;
+                opinionTarget = target;
+
+                var rand = new System.Random();
+
+                if (personality.minimumRandomOpinion <= personality.maximumRandomOpinion)
+                {
+                    value = rand.Next(personality.minimumRandomOpinion, personality.maximumRandomOpinion);
+                };
             }
 
         }
+
+        public Fyrefly_PersonalOpinion GetPersonalOpinion(GameObject target)
+        {
+            if (!personalOpinions.ContainsKey(target))
+            {
+                personalOpinions[target] = new Fyrefly_PersonalOpinion(this, target);
+            }
+            return personalOpinions[target];
+        }
+
+        public double AdjustPersonalOpinion(GameObject target, double value)
+        {
+
+            Fyrefly_PersonalOpinion opinion = GetPersonalOpinion(target);
+            opinion.value += value;
+            return opinion.value;
+        }
+
+
 
         public class MethodConversationNode : ConversationNode
         {
@@ -69,25 +120,37 @@ namespace XRL.World.Parts
             }
         }
 
-        public class FeelingConversationNode : MethodConversationNode
+        public class PersonalOpinionConversationNode : MethodConversationNode
         {
-            public FeelingConversationNode(string text, string id, int feelingAdjust)
+            public PersonalOpinionConversationNode(string text, string id, int feelingAdjust)
             {
                 Text = text;
                 ID = id;
                 OnVisit = (GameObject speaker, GameObject listener) =>
                 {
-                    log($"Adjusting {speaker.DebugName}'s feeling of {listener.DebugName} by {feelingAdjust}");
-                    speaker.pBrain.AdjustFeeling(listener, feelingAdjust);
+                    log($"Adjusting {speaker.DebugName}'s personal opinion of {listener.DebugName} by {feelingAdjust}");
+                    DynamicPersonality personality = speaker.GetPart<DynamicPersonality>();
+                    personality.AdjustPersonalOpinion(listener, feelingAdjust);
                 };
             }
         }
 
         //Important Fields
 
-        public Dictionary<GameObject, Fyrefly_DynamicRelationship> relationships;
+
         public string name;
-        public BoundarySet boundaries = new BoundarySet();
+
+        public Dictionary<GameObject, Fyrefly_PersonalOpinion> personalOpinions = new Dictionary<GameObject, Fyrefly_PersonalOpinion>();
+
+        /// <summary>
+        /// Determines the minimum random opinion added to all relationships
+        /// </summary>
+        public int minimumRandomOpinion = 0;
+        /// <summary>
+        /// Determines the maximum random opinion added to all relationships
+        /// </summary>
+        public int maximumRandomOpinion = 10;
+
 
 
         //Easy References
@@ -97,16 +160,16 @@ namespace XRL.World.Parts
 
         public void HandleBeginConversation(Event E)
         {
-            log("Getting partner");
+            log("Getting conversation partner");
             GameObject conversationPartner = E.GetGameObjectParameter("With");
 
-            log("Getting Conversation");
+            //log("Getting Conversation");
             Conversation conversation = E.GetParameter("Conversation") as Conversation;
 
             if (conversation == null) { logE("Conversation is null!"); return; }
             if (conversationPartner == null) { logE("ConversationPartner is null!"); return; }
 
-            log("Getting startNode");
+            //log("Getting startNode");
             if (!conversation.NodesByID.TryGetValue("Start", out ConversationNode startnode))
             {
                 logE("Exception uncovered!");
@@ -115,16 +178,21 @@ namespace XRL.World.Parts
             }
 
 
-            log("Getting DebugFeelingText");
-            string debugFeelingText = $"Feeling Value: {brain.GetFeeling(conversationPartner)}\n";
-            log("Debug Feeling Text got");
-            conversation.Introduction = string.IsNullOrEmpty(conversation.Introduction) ? debugFeelingText : "\n" + debugFeelingText;
+            //log("Getting DebugFeelingText");
+            string debugOpinionText = $"Opinion Value: {GetPersonalOpinion(conversationPartner).value}\n";
+            //log("Debug Opinion Text got");
+            startnode.Text = debugOpinionText + "\n\n" + startnode.Text;
 
-            MethodConversationNode AddOpinionNode = new FeelingConversationNode("Wow, I really do like you now!", "likeMeNode", 50);
+            MethodConversationNode AddOpinionNode = new PersonalOpinionConversationNode("Wow, I really do like you now!", "likeMeNode", 10);
             AddOpinionNode.AddChoice("To Main", "Start");
             AddOpinionNode.AddChoice("End Me Daddy", "End");
             conversation.AddNode(AddOpinionNode);
-            startnode.AddChoice("Like me please", "likeMeNode");
+            MethodConversationNode SubtractOpinionNode = new PersonalOpinionConversationNode("Wow, I really do hate you now!", "hateMeNode", -10);
+            SubtractOpinionNode.AddChoice("To Main", "Start");
+            SubtractOpinionNode.AddChoice("End Me Daddy", "End");
+            conversation.AddNode(SubtractOpinionNode);
+            startnode.AddChoice("Hate me please", "hateMeNode");
+
 
         }
 
@@ -134,31 +202,12 @@ namespace XRL.World.Parts
             ConversationNode firstNode = E.GetParameter<ConversationNode>("FirstNode");
             ConversationNode currentNode = E.GetParameter<ConversationNode>("CurrentNode");
 
-            int opinion = brain.GetFeeling(player);
 
-            if (opinion < boundaries.trade) {
-                //Cant Trade
-            }
+
+
         }
 
-        public override bool HandleEvent(ObjectCreatedEvent E)
-        {
-            Debug.Log("Creating Dynamic Personality Part");
-            if (ParentObject == null)
-            {
-                Debug.LogError("No parent object while creating DynamicPersonalityPart!");
-                return false;
-            }
-            if (ParentObject.pBrain == null)
-            {
-                Debug.LogError("Dynamic Personality is on an object with no brain, this aint supposed to happen!");
-                return false;
-            }
 
-            MessageQueue.AddPlayerMessage($"Added Dynamic Personality to {ParentObject.DisplayName}");
-
-            return true;
-        }
 
         public override void Register(GameObject Object)
         {
@@ -167,6 +216,23 @@ namespace XRL.World.Parts
             Object.RegisterPartEvent(this, "ShowConversationChoices");
 
             base.Register(Object);
+
+            Debug.Log("Registering Dynamic Personality Part");
+            if (ParentObject == null)
+            {
+                Debug.LogError("No parent object while creating DynamicPersonalityPart!");
+                return;
+            }
+            if (ParentObject.pBrain == null)
+            {
+                Debug.LogError("Dynamic Personality is on an object with no brain, this aint supposed to happen!");
+                return;
+            }
+
+            MessageQueue.AddPlayerMessage($"Added Dynamic Personality to {ParentObject.DisplayName}");
+
+            return;
+
         }
 
 
