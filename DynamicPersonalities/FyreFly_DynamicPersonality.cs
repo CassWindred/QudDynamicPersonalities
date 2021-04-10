@@ -1,6 +1,8 @@
 
 using System;
 using System.Collections.Generic;
+using Fyrefly;
+using Fyrefly.UtilityConversationNodes;
 using UnityEngine;
 using XRL.Core;
 using XRL.Messages;
@@ -22,8 +24,10 @@ namespace XRL.World.Parts
             }
         }
 
+
         public class BoundarySet
         {
+            public int sharename = -20;
             public int trade = -10;
             public int givequest = -5;
             public int receivegift = 10;
@@ -35,40 +39,6 @@ namespace XRL.World.Parts
         public BoundarySet boundaries = new BoundarySet();
 
 
-        public class Fyrefly_PersonalOpinion
-        {
-
-
-            private double _value;
-            /// <summary>
-            /// The strength of this opinion, ranges from hatred (-100) to adoration (+100).
-            /// </summary>
-            public double value
-            {
-                get { return Math.Max(-100, Math.Min(_value, 100)); }
-                set { _value = Math.Max(-100, Math.Min(value, 100)); }
-            }
-
-            public DynamicPersonality personality;
-
-            public GameObject opinionHaver;
-            public GameObject opinionTarget;
-
-            public Fyrefly_PersonalOpinion(DynamicPersonality p, GameObject target)
-            {
-                personality = p;
-                opinionHaver = personality.ParentObject;
-                opinionTarget = target;
-
-                var rand = new System.Random();
-
-                if (personality.minimumRandomOpinion <= personality.maximumRandomOpinion)
-                {
-                    value = rand.Next(personality.minimumRandomOpinion, personality.maximumRandomOpinion);
-                };
-            }
-
-        }
 
         public Fyrefly_PersonalOpinion GetPersonalOpinion(GameObject target)
         {
@@ -94,54 +64,6 @@ namespace XRL.World.Parts
 
 
 
-        public class MethodConversationNode : ConversationNode
-        {
-
-            public delegate void VisitMethod(GameObject speaker, GameObject listener);
-            public VisitMethod OnVisit;
-            public MethodConversationNode(string text, string id, VisitMethod onVisit)
-            {
-
-                Text = text;
-                ID = id;
-                OnVisit = onVisit;
-
-            }
-
-            public MethodConversationNode() { }
-
-            public override void Visit(GameObject speaker, GameObject listener)
-            {
-                try
-                {
-                    OnVisit(speaker, listener);
-                }
-                catch (Exception ex)
-                {
-                    //$@ is an interpolated string and a verbatim string (it works with multiple lines)
-                    logE($@"{(ex is NullReferenceException ? "Null Reference Exception" : "Unknown Exception")} in Method Conversation Node 
-                    ID: {ID}
-                    OnVisit is {(OnVisit != null ? "not" : "")} null
-                    Exception: {ex}");
-                    base.Visit(speaker, listener);
-                }
-            }
-        }
-
-        public class PersonalOpinionConversationNode : MethodConversationNode
-        {
-            public PersonalOpinionConversationNode(string text, string id, int feelingAdjust)
-            {
-                Text = text;
-                ID = id;
-                OnVisit = (GameObject speaker, GameObject listener) =>
-                {
-                    log($"Adjusting {speaker.DebugName}'s personal opinion of {listener.DebugName} by {feelingAdjust}");
-                    DynamicPersonality personality = speaker.GetPart<DynamicPersonality>();
-                    personality.AdjustPersonalOpinion(listener, feelingAdjust);
-                };
-            }
-        }
 
         //Important Fields
 
